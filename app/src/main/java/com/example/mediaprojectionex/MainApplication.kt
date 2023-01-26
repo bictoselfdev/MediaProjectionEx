@@ -34,7 +34,7 @@ class MainApplication : Application() {
             }
 
             val pendingIntent = Intent(context(), MainActivity::class.java).let { notificationIntent ->
-                PendingIntent.getActivity(context(), 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+                PendingIntent.getActivity(context(), 0, notificationIntent, PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             }
 
             var title = ""
