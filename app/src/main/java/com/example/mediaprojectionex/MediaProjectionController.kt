@@ -15,6 +15,7 @@ import android.media.MediaRecorder
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.provider.MediaStore
+import android.view.SurfaceView
 import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import io.reactivex.functions.Action
@@ -167,8 +168,17 @@ object MediaProjectionController {
 
         // MediaRecorder Prepare
         mediaRecorder = MediaRecorder()
-        mediaRecorder?.apply {
+        prepareRecording(activity)
 
+        // MediaRecorder Surface rendering
+        virtualDisplayRecord = projectionRecord?.createVirtualDisplay(
+            "screenRecord", width, height, density, flags,
+            mediaRecorder?.surface, null, null
+        )
+    }
+
+    private fun prepareRecording(activity: Activity) {
+        mediaRecorder?.apply {
             setVideoSource(MediaRecorder.VideoSource.SURFACE)
             setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
             setVideoEncoder(MediaRecorder.VideoEncoder.H264)
@@ -186,12 +196,6 @@ object MediaProjectionController {
             setOutputFile(fileDescriptor?.fileDescriptor)
             prepare()
         }
-
-        // MediaRecorder Surface rendering
-        virtualDisplayRecord = projectionRecord?.createVirtualDisplay(
-            "screenRecord", width, height, density, flags,
-            mediaRecorder?.surface, null, null
-        )
     }
 
     private fun startRecording(activity: Activity) {
