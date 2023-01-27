@@ -14,8 +14,8 @@ import android.media.ImageReader.OnImageAvailableListener
 import android.media.MediaRecorder
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
+import android.os.ParcelFileDescriptor
 import android.provider.MediaStore
-import android.view.SurfaceView
 import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import io.reactivex.functions.Action
@@ -44,6 +44,8 @@ object MediaProjectionController {
 
     private var captureCompletedAction: Consumer<Bitmap>? = null
     private var startRecordCompletedAction: Action? = null
+
+    private var fileDescriptor: ParcelFileDescriptor? = null
 
     var isRecording = MutableLiveData(false)
 
@@ -177,23 +179,35 @@ object MediaProjectionController {
         )
     }
 
+    fun createFile(activity: Activity): ParcelFileDescriptor? {
+
+        val contentValues = ContentValues()
+        val currentTime = Date(System.currentTimeMillis())
+        val currentTimeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA).format(currentTime)
+
+        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, "MediaProjectionEx$currentTimeStamp.mp4")
+        contentValues.put(MediaStore.Video.Media.MIME_TYPE, "video/mp4");
+        contentValues.put(MediaStore.Video.Media.DATE_ADDED, System.currentTimeMillis());
+
+        val contentResolver = activity.contentResolver
+        val collectionUri = contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
+
+        return contentResolver.openFileDescriptor(collectionUri!!, "w")
+    }
+
     private fun prepareRecording(activity: Activity) {
+
+        fileDescriptor = createFile(activity) // Create file to save
+
         mediaRecorder?.apply {
+
+            setOutputFile(fileDescriptor?.fileDescriptor)
             setVideoSource(MediaRecorder.VideoSource.SURFACE)
             setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setVideoEncoder(MediaRecorder.VideoEncoder.H264)
             setVideoEncodingBitRate(5 * 1024 * 1000)
             setVideoFrameRate(30)
+            setVideoEncoder(MediaRecorder.VideoEncoder.DEFAULT)
             setVideoSize(width, height)
-
-            val contentValues = ContentValues()
-            val currentTime = Date(System.currentTimeMillis())
-            val currentTimeStamp = SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA).format(currentTime)
-            contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, "MediaProjectionEx$currentTimeStamp.mp4")
-            val contentResolver = activity.contentResolver
-            val collectionUri = contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, contentValues)
-            val fileDescriptor = collectionUri?.let { contentResolver.openFileDescriptor(it, "w", null) }
-            setOutputFile(fileDescriptor?.fileDescriptor)
             prepare()
         }
     }
@@ -227,9 +241,11 @@ object MediaProjectionController {
 
                 isRecording.value = false
 
+                fileDescriptor?.close()
+
                 action?.run()
 
-                Toast.makeText(activity, "stopRecording, saved to public MediaStore", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, "stopRecording, File has been saved.", Toast.LENGTH_SHORT).show()
 
             } catch (e: Exception) {
                 System.err.println("[MediaProjection] start error : $e")

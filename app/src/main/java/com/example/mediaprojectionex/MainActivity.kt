@@ -1,10 +1,13 @@
 package com.example.mediaprojectionex
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
 import com.example.mediaprojectionex.databinding.ActivityMainBinding
 
@@ -17,6 +20,7 @@ class MainActivity : AppCompatActivity() {
 
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
 
+        permissionCheck()
         startMainService()
         initializeView()
         setListener()
@@ -98,5 +102,26 @@ class MainActivity : AppCompatActivity() {
                 MainApplication.updateNotification(this, "Recording", "Stop")
             }
         }
+    }
+
+    private fun permissionCheck(): Boolean {
+        try {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+                || ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this, arrayOf(
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    ), 300
+                )
+                return false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return false
+        }
+
+        return true
     }
 }
